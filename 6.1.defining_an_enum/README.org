@@ -1,0 +1,65 @@
+* 定义枚举
+  方式1:
+  #+begin_src rust
+    enum IpAddrKind {
+        V4,
+        V6
+    }
+
+    let four = IpAddrKind::V4;
+    let six = IpAddrKind::V6;
+  #+end_src
+
+  方式2: 限制类型
+  #+begin_src rust
+    enum IpAddr {
+        V4(String),
+        V6(String)
+    }
+
+    let home = IpAddr::V4(String::from("127.0.0.1"));
+    let loopback = IpAddr::V6(String::from("::1"));
+  #+end_src
+
+  #+begin_src rust
+    enum IpAddr {
+        V4(i8, u8, u8, u8),
+        V6(String)
+    }
+
+    let home = IpAddr::V4(127, 0, 0, 1);
+
+    let loopback = IpAddr::V6(String::from("::1"));
+  #+end_src
+
+  枚举特性:
+  枚举可以放入 *任意类型* 的数据, 也可以包含另一个枚举
+
+  #+begin_src rust
+    struct QuitMessage; // 类单元结构体
+    struct MoveMessage {
+        x: i32,
+        y: i32
+    }
+    struct WriteMessage(String); // 元组结构体
+    struct ChangeColorMessage(i32, i32, i32); //元组结构体
+  #+end_src
+  
+  ~impl~ 也可以用来在枚举上定义方法
+  
+** Option枚举
+   Option类型即要么有值要么没值.
+   从类型系统的角度来表达这个概念就意味着编译器需要检查是否处理了所有应该处理的
+   情况, 这样就可以避免在其他编程语言中非常常见的 bug.
+
+   Rust 并没有很多其他语言中有的空值功能. *空值(Null)* 是一个值, 它代表没有值.
+   在有空值的语言中, 变量总是这两种状态之一: 空值和非空值.
+
+   Rust 拥有一个可以编码存在或不存在概念的枚举. 这个枚举是 ~Option<T>~, *不需要
+   将其显式引用作用域*. 成员也是如此. 不需要前缀, *直接使用*, ~<T>~ 为泛型参数.
+
+   如果使用 ~None~ 而不是 ~Some~, 需要指明类型, 编译器只通过 ~None~ 无法推断
+   ~Some~ 成员保存的类型;
+
+   在对 ~Option<T>~ 进行 ~T~ 的运算之前必须将其转换为 ~T~. 通常这能帮助我们捕获
+   到空值最常见的问题之一: 假设某值不为空但实际上为空的情况
