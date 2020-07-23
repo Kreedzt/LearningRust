@@ -24,10 +24,10 @@ impl Message {
     }
 }
 
-enum Option<T> {
-    Some(T),
-    None,
-}
+// enum Option<T> {
+//     Some(T),
+//     None,
+// }
 
 fn main() {
     let four = IpAddrKind::V4;
@@ -51,14 +51,13 @@ fn main() {
 
     let some_number = Some(5);
     let some_string = Some("a string");
-    // Error
-    // let absent_number: Option<i32> = None;
+    let absent_number: Option<i32> = None;
 
     let x: i8 = 5;
     let y: Option<i8> = Some(5);
 
     // error[E0277]: cannot add `Option<i8>` to `i8`
-    let sum = x + y;
+    // let sum = x + y;
 }
 
 fn route(ip_type: IpAddrKind) {
