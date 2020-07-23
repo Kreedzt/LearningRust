@@ -1,0 +1,26 @@
+* 方法语法
+  使用 ~impl~ 块, 将函数定义到内部, 并将函数和参数提中其他的地方参数改成 ~self~
+
+  区别:
+  - ~self~: 类似 ~Rectangle~, 通常在转换成别的实例使用, 转换后销毁
+  - ~&self~: 类似 ~&Rectangle~, 仅借用
+  - ~&mut self~: 类似 ~&mut Rectangle~, 可变引用
+
+    
+  *注意*:
+  C/C++ 中会使用 ~->~ 来调用指针对象上的方法, 这时需要解引用指针.
+  如果 ~object~ 是一个指针, 那么 ~object->something()~ 类似
+  ~(*object).something()~
+
+  Rust 并没有等效运算符, 有 *自动引用和自动解引用*. 方法调用是 Rust 中少数拥有这
+  种行为的地方.
+  
+  当使用 ~object.something()~ 调用方法时, Rust 会自动为 ~object~ 添加 ~&~,
+  ~&mut~ 或 ~*~ 以便使 ~object~ 与方法签名匹配. 如下代码等价:
+  #+begin_src c
+    p1.distance(&p2);
+    (&p1).distance(&p2);
+  #+end_src
+
+  自动引用的行为因为有 *明确的接受者 ~self~ 的类型*, 所以有效. Rust 对方法接受者
+  的隐式借用让所有权在实战中更友好.
