@@ -1,0 +1,19 @@
+* Vector
+  引用后新增元素:
+  #+begin_src rust
+    let mut v = vec![1, 2, 3, 4, 5];
+
+    // Error
+    let first = &v[0];
+    //  - immutable borrow occurs here
+
+    v.push(6);
+
+    println!("The first element is: {}", first);
+  #+end_src
+  
+  原因: 在 ~vector~ 的结尾增加新元素时, 在没有足够空间将所有元素一次相邻存放的情
+  况下, 可能会要求分配新内存并将老的元素 *拷贝到新的空间中*. 这时, 第一个元素的引用
+  就指向了被释放的内存. 借用规则组织程序陷入这种情况
+
+  
