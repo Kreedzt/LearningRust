@@ -91,18 +91,20 @@ fn statistics() {
     println!("average: {}", average);
 
     let mut sorted_numbers: Vec<i32> = numbers.clone();
-    let mut inner_index = 0;
+
     let mut temp_number;
+    let length = sorted_numbers.len();
+    println!("sorted_numbers length: {}", length);
     // 排序
-    for (pos) in numbers.iter().enumerate() {
+    for (pos, num) in numbers.iter().enumerate() {
         println!("current pos: {}, num: {}", pos, num);
 
-        inner_index = 0;
+        let mut inner_index = 0;
         loop {
-            if inner_index <= sorted_numbers.len() - 2 {
+            if inner_index >= (length - pos - 1) {
                 break;
             }
-            if &sorted_numbers[inner_index] > &sorted_numbers[inner_index + 1] {
+            if sorted_numbers[inner_index] > sorted_numbers[inner_index + 1] {
                 temp_number = sorted_numbers[inner_index + 1];
                 sorted_numbers[inner_index + 1] = sorted_numbers[inner_index];
                 sorted_numbers[inner_index] = temp_number;
@@ -110,6 +112,36 @@ fn statistics() {
             inner_index += 1;
         }
     }
+
+    if length % 2 == 0 {
+        println!("中位数: {}", (sorted_numbers[length / 2] + sorted_numbers[(length / 2) + 1]) / 2);
+    } else {
+        println!("中位数: {}", sorted_numbers[length / 2]);
+    }
+
+    let mut times_map: HashMap<i32, i32> = HashMap::new();
+
+    for num in numbers.iter() {
+        let count = times_map.entry(*num).or_insert(0);
+        *count += 1;
+    }
+
+    let mut max_times_num: Option<i32> = None;
+    let mut max_times_count = 0;
+
+    for (key, times) in times_map.iter() {
+        println!("num: {}, times: {}", key, times);
+        if *times > max_times_count {
+            println!("entered if");
+            max_times_num = Some(*key);
+            max_times_count = *times;
+        }
+    }
+
+    if let Some(c) = max_times_num {
+        println!("众数: {}", c);
+    }
+
 
     println!("sorted_numbers: {:?}", sorted_numbers);
 }

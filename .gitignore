@@ -4,6 +4,8 @@
 # dependencies
 /.idea
 .idea/
+/.vscode
+.vscode/
 /.pnp
 .pnp.js
 
