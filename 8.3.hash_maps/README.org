@@ -1,0 +1,8 @@
+* HashMap
+  
+** HashMap 和所有权
+   对于像 ~i32~ 这样的实现了 ~Copy~ trait 的类型, 其值可以拷贝进 HashMap. 对于像
+   ~String~ 这样拥有所有权的值, 其值将被移动而 HashMap 将会成为这些值的所有者
+
+   如果将 *值的引用* 插入 HashMap, 这些值本身将不会被移动进 HashMap. 但是这些引
+   用指向的值 *必须至少在 HashMap 有效时也是有效的*.
