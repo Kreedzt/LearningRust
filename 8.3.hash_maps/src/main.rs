@@ -61,7 +61,6 @@ fn main() {
     let text = "hello world wonderful world";
 
     let mut map = HashMap::new();
-    
     // 以单词分割
     for word in text.split_whitespace() {
         // 统计每一个单词出现多少次, 出现了 + 1
@@ -69,11 +68,59 @@ fn main() {
         *count += 1;
     }
 
-    println!("{:?}", map);
+    // println!("{:?}", map);
 
-    statistics();
+    // statistics();
+
+    convert_str("first");
+    convert_str("apple");
 }
 
+fn convert_str(source: &str) {
+    let mapper: HashMap<&str, bool> = [
+        ("a", true),
+        ("e", true),
+        ("i", true),
+        ("o", true),
+        ("u", true),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    let mut res = String::new();
+    for word in source.split_whitespace() {
+        let mut target = String::from(source);
+
+        let mut needed_suffix: bool = true;
+        for c in mapper.keys() {
+            // 判断是否元音起始
+            let res = target.starts_with(c);
+
+            // 有元音, 不需要偏移
+            if res {
+                needed_suffix = false;
+                break;
+            }
+        }
+
+        println!("needed_suffix: {}", needed_suffix);
+
+        if needed_suffix {
+            for w in word.chars() {
+                let suffix_str = format!("{}-{}{}", &word[1..], w, "ay");
+              res.push_str(&suffix_str); 
+              break;
+            }
+            
+        } else {
+            let suffix_str = String::from(format!("{}-{}", word, "hay"));
+            res.push_str(&suffix_str);
+        }
+    }
+
+    println!("res str: {}", res);
+}
 
 fn statistics() {
     println!("statistics fn:");
@@ -85,7 +132,6 @@ fn statistics() {
         println!("current num: {}", num);
         total += num;
     }
-    
     let average = total as f64 / numbers.len() as f64;
 
     println!("average: {}", average);
@@ -114,7 +160,10 @@ fn statistics() {
     }
 
     if length % 2 == 0 {
-        println!("中位数: {}", (sorted_numbers[length / 2] + sorted_numbers[(length / 2) + 1]) / 2);
+        println!(
+            "中位数: {}",
+            (sorted_numbers[length / 2] + sorted_numbers[(length / 2) + 1]) / 2
+        );
     } else {
         println!("中位数: {}", sorted_numbers[length / 2]);
     }
@@ -141,7 +190,6 @@ fn statistics() {
     if let Some(c) = max_times_num {
         println!("众数: {}", c);
     }
-
 
     println!("sorted_numbers: {:?}", sorted_numbers);
 }
