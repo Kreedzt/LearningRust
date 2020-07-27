@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io;
 
 fn main() {
     // let mut scores = HashMap::new();
@@ -72,8 +73,86 @@ fn main() {
 
     // statistics();
 
-    convert_str("first");
-    convert_str("apple");
+    // convert_str("first");
+    // convert_str("apple");
+    init_inser_practice();
+}
+
+fn init_inser_practice() {
+    let mut user_vec: Vec<String> = Vec::new();
+    let mut dept_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    loop {
+        println!("Input u to add user, d to add dept, s to display, q to quit:");
+        let mut user_select = String::new();
+        io::stdin().read_line(&mut user_select).expect("Error format");
+
+        match user_select.chars().next().unwrap() {
+            'u' => {
+                let mut user_name = String::new();
+                let mut dept_name = String::new();
+                if dept_map.len() == 0 {
+                    println!("Empty dept!");
+                    continue;
+                }
+                println!("Input user name");
+                io::stdin().read_line(&mut user_name).expect("Error username format");
+                
+                println!("Input dept name");
+                io::stdin().read_line(&mut dept_name).expect("Error deptname format");
+
+                match dept_map.get_mut(&dept_name) {
+                    Some(c) => {
+                        println!("current user vec: {:?}", c);
+                        c.push(user_name);
+                    },
+                    None => println!("Empty")
+                }
+            },
+            'd' => {
+                println!("Input dept name");
+                let mut dept_name = String::new();
+                io::stdin().read_line(&mut dept_name).expect("Error deptname format");
+
+                dept_map.insert(dept_name, Vec::new());
+            },
+            's' => {
+                for (dept, c_user_vec) in dept_map.iter() {
+                    println!("Dept name: {}", dept);
+
+                    for user in c_user_vec.iter() {
+                        println!("User name: {}", user);
+                    }
+                }  
+            },
+            'q' => {
+                println!("Exit");
+                break
+            },
+            _ => println!("Not a valid input")
+        }   
+    }
+
+    
+    // add_dept(&mut deptMap);
+    // add_user_to_dept(&mut userVec, &mut deptMap);
+}
+
+fn add_dept(deptMap: &mut HashMap<&str, &mut Vec<&str>>) {
+    // println!("Add dept ctrl:");
+    // let mut input_str = String::new();
+    // io::stdin().read_line(&mut input_str).expect("Error format");
+    // let mut newVec: Vec<&str> = Vec::new();
+    // deptMap.insert(&input_str, &mut Vec::new()).expect("insert Error");
+    // println!("Exit add dept.");
+}
+
+fn add_user_to_dept(userVec: &mut Vec<&str>, deptMap: &mut HashMap<&str, &mut Vec<&str>>) {
+    // println!("Add user to dept ctrl:");
+    // let mut input_str = String::new();
+    // io::stdin().read_line(&mut input_str).expect("Error format");
+
+    
 }
 
 fn convert_str(source: &str) {
