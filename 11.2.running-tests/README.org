@@ -1,0 +1,42 @@
+* 控制测试如何运行
+  ~cargo test~ 在测试环境下编译代码并运行生成的测试二进制文件. 可以指定命令行参
+  数来改变 ~cargo test~ 的默认行为.
+
+  eg: ~cargo test~ 生成的二进制文件的默认行为是并行的运行所有测试, 并截获测试运
+  行过程中产生的输出, 阻止他们被显示出来, 使得阅读测试结果相关的内容变得更容易.
+
+** 并行或连续的运行测试
+   当运行多个测试时, Rust 默认使用线程来并行运行, 这意味着测试会更快地运行完毕,
+   所以可以更快的得到代码能否工作的反馈. 因为测试是同时在运行的, 应该 *确保不能
+   相互依赖*, 或依赖任何共享的状态和环境, eg: 当前工作目录或环境变量.
+
+   可以改为指定线程数运行:
+   #+begin_src bash
+     cargo test -- --test-threads=1 # 指定为单线程
+   #+end_src
+
+** 显示函数输出
+   默认情况下, Rust 的测试库会截获打印到标准输出的所有内容.
+
+   eg: 测试中调用 ~println~ 并测试通过, 将不会在终端看到该输出: 只会看到说明测试
+   通过的命令行. 如果失败, 则会看到所有标准输出和其他错误信息.
+
+   #+begin_src bash
+     cargo test -- --nocapture # 截获通过的测试中打印的值
+   #+end_src
+
+** 通过指定名字来运行部分测试
+**** 运行单个测试
+     #+begin_src bash
+       cargo test [name] # cargo test one_hundred
+     #+end_src
+
+**** 过滤运行多个测试
+     #+begin_src bash
+       cargo test add # 运行所有 add 开头的测试
+     #+end_src
+
+**** 运行被排除的测试
+     #+begin_src bash
+       cargo test -- --ignored
+     #+end_src
