@@ -1,0 +1,90 @@
+* 测试的组织结构
+  Rust 社区倾向于测试的 2 个主要分类来考虑问题: *单元测试(unit tests)* 与 *集成
+  测试(integration tests)*. 单元测试倾向于更小而更集中, 在隔离的环境中一次测试一
+  个模块, 或者是测试私有接口. 而集成测试对于你的库来说则是完全是外部的. 它们与其
+  他外部代码一样, 通过相同的方式使用你的代码, 只测试公有接口而且每个测试都有可能
+  会测试多个模块.
+
+** 单元测试
+   单元测试的目的是在其他部分隔离的环境中测试每一个单元的代码, 以便于快速而准确
+   的每个单元的代码功能是否符合预期. 单元测试与他们要测试的代码共同存放于 ~src~
+   目录下相同的文件中. 规范是在每个文件中创建包含测试函数的 ~tests~ 模块, 并使用
+   ~cfg(test)~ 标注模块
+
+*** 测试模块和 ~#[cfg(test)]~
+    测试模块的 ~#[cfg(test)]~ 注解告诉 Rust 只在执行 ~cargo test~ 时才编译和运行
+    测试代码, 而在运行 ~cargo build~ 时不这么做. 这在只希望构建库的时候可以节省
+    编译时间, 并且因为它们并没有包含测试, 所以能减少编译产生的文件的大小. 与之对
+    应的集成测试因为位于另一个文件夹, 所以它们并不需要 ~#[cfg(test)]~ 注解. 然而
+    单元测试位于与源码相同的文件中, 所以需要使用 ~#[cfg(test)]~ 来指定他们不应该
+    被包含进编译结果中.
+
+    #+begin_src rust
+      #[cfg(test)]
+      mod tests {
+          #[test]
+          fn it_works() {
+              assert_eq!(2 + 2, 4);
+          }
+      }
+    #+end_src
+
+    ~cfg~ 属性代表 configuration, 它告诉 Rust 其之后的项只应该被包含进特定配置选
+    项中. 在这个例子中, 配置选项是 ~test~. 即 Rust 所提供的用于编译和运行测试的
+    配置选项. 通过使用 ~cfg~ 属性, Cargo 只会在我们主动使用 ~cargo test~ 运行测
+    试时才编译测试代码. 需要编译的不仅仅有标注为 ~#[test]~ 的函数之外, 还包括测
+    试模块中可能存在的帮助函数.
+
+*** 测试私有函数
+    Rust 的私有性规则缺失允许测试私有函数
+    #+begin_src rust
+      pub fn add_two(a: i32) -> i32 {
+          interal_adder(a, 2)
+      }
+
+      fn internal_adder(a: i32, b: i32) -> i32 {
+          a + b
+      }
+
+      #[cfg(test)]
+      mod tests {
+          use super::*;
+
+          #[test]
+          fn internal() {
+              assert_eq!(4, internal_adder(2, 2));
+          }
+      }
+    #+end_src
+    
+** 集成测试
+*** tests 目录
+    需要在项目根目录创建一个 tests 目录, 与 src 同级, 来编写集成测试. 接着可以随
+    意在这个目录中创建任意多的测试文件, Cargo 会将每一个文件当做单独的 crate 来
+    编译.
+
+    与单元测试不同, 每一个 ~tests~ 目录中的测试文件都是完全独立的 crate, 所以需
+    要在每一个文件中导入库.
+
+    并不需要 ~#[cfg(test)]~ 的标记, ~tests~ 文件夹在 Cargo 中是一个特殊的文件夹,
+    Cargo 只会在运行 ~cargo test~ 时编译这个目录中的文件
+
+    仍然可以指定测试函数的名称, 也可以使用 ~cargo test~ 的 ~--test~ 后跟文件名来
+    允许某个特定集成测试文件中的所有测试
+    #+begin_src bash
+      cargo test --test integration_test
+    #+end_src
+
+*** 集成测试中的子模块
+    tests 目录中根文件都被会自动编译测试. 然而子目录不会被作为单独的 crate 编译
+    或作为一个测试结果部分出现在测试输出中
+
+*** 二进制 crate 的集成测试
+    如果项目是二进制 crate 并且质保函 ~src/main.rs~ 而没有 ~src/lib.rs~, 这样就
+    不可能在 test 目录创建集成测试并使用 ~extern crate~ 导入 ~src/main.rs~ 中定
+    义的函数. 只有库 crate 才会向其他 crate 暴露了可供调用和使用的函数; 二进制
+    crate 只意在单独运行
+
+    Rust 二进制项目的结构明确采用 ~src/main.rs~ 调用 ~src/lib.rs~. 通过这种结构,
+    集成测试就可以 通过 ~extern crate~ 测试库 crate 中的 *主要功能*. 如果这些重
+    要功能没有问题, ~src/main.rs~ 中少量代码也就会正常工作而不需要测试.
