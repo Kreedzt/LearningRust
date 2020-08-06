@@ -21,7 +21,9 @@ fn main() {
     // let config = parse_config(&args);
 
     let config = Config::new(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {}", err);
+        // println!("Problem parsing arguments: {}", err);
+        // 错误输出不会重定向到文件
+        eprintln!("Problem parsing arguments: {}", err);
         process::exit(1);
     });
 
@@ -36,7 +38,9 @@ fn main() {
     // 警告: 没有错误处理
     // run(config);
     if let Err(e) = minigrep::run(config) {
-        println!("Application error: {}", e);
+        // println!("Application error: {}", e);
+        // 错误输出不会重定向到文件
+        eprintln!("Application error: {}", e);
 
         process::exit(1);
     }
