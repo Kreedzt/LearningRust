@@ -1,0 +1,18 @@
+[package]
+name = "release-profiles"
+version = "0.1.0"
+authors = ["Kreedzt <zhaozisong1@live.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.dev]
+# 设置控制 Rust 会对代码进行何种程序的优化, 从 0 - 3. 越高表示需要更多的时间编译
+# 开发默认为 0
+opt-lebel = 0
+
+[profile.release]
+# 发布默认为 3
+opt-level = 3
+
+[dependencies]
