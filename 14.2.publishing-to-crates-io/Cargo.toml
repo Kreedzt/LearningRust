@@ -1,0 +1,11 @@
+[package]
+name = "publishing-to-crates-io"
+version = "0.1.0"
+authors = ["Kreedzt <zhaozisong1@live.com>"]
+edition = "2018"
+description = "Kreedzt's test crate."
+license = "MIT OR Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
