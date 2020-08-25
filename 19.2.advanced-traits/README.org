@@ -1,0 +1,105 @@
+* 高级 trait
+** 关联类型在 trait 定义中指定占位符类型
+   *关联类型(associated types)* 是一个将类型占位符与 trait 相关联的方式, 这样
+    trait 的方法签名中就可以使用这些占位符类型. trait 的实现者会针对特定的实现在
+    这个类型的位置指定相应的具体类型. 如此可以定义一个使用多种类型的 trait, 直到
+    实现此 trait 时都无需知道这些类型具体是什么.
+
+   一个带有关联类型的 trait 的例子是标准库提供的 ~Iterator~ trait. 它有一个叫做
+   ~Item~ 的关联类型来替代遍历的值的类型.
+   #+begin_src rust
+     pub trait Iterator {
+         type Item;
+
+         fn next(&mut self) -> Option<Self::Item>;
+     }
+   #+end_src
+
+   ~Item~ 是一个占位类型, 同时 ~next~ 方法定义表明它返回 ~Option<Self::Item>~ 类
+   型的值. 这个 trait 的实现者会指定 ~Item~ 的具体类型, 然而不管实现者指定何种类
+   型, ~next~ 方法都会返回一个包含了此具体类型值的 ~Option~.
+
+   关联类型看起来像一个类似泛型的概念, 因为它允许定义一个函数而不指定其可以处理
+   的类型.
+
+   13 章的 ~Counter~ 结构体上实现 ~Iterator~ trait:
+   #+begin_src rust
+     impl Iterator for Counter {
+         type Item = u32;
+
+         fn next(&mut self) -> Option<Self::Item> {
+             // ...
+         }
+     }
+   #+end_src
+   
+   类似的泛型定义:
+   #+begin_src rust
+     pub trait Iterator<T> {
+         fn next(&mut self) -> Option<T>;
+     }
+   #+end_src
+
+   区别在于如果使用泛型时, 则不得不在 *每一个实现中标注类型*. 这是因为我们也可以
+   实现为 ~Iterator<String> for Counter~, 或任何其他类型, 这样就可以有多个
+   ~Counter~ 的 ~Iterator~ 的实现. 换句话说, 当 trait 有泛型参数时, 可以多次实现
+   这个 triat, 每次需改变泛型参数的具体类型. 接着当使用 ~Counter~ 的 ~next~ 方法
+   时, 必须提供类型注解来表明希望使用 ~Iterator~ 的哪一个实现.
+
+   通过关联类型, 则无需标注类型因为不能多次实现这个 trait. 我们只能选择一次
+   ~Item~ 会是什么类型, 因为只能有一个 ~impl Iterator for Counter~. 当调用
+   ~Counter~ 的 ~next~ 时不必每次指定我们需要 ~u32~ 值的迭代器.
+** 默认泛型类型参数和运算符重载
+   当使用泛型类型参数时, 可以为泛型指定一个默认的具体类型. 如果默认类型就足够的
+   话, 这消除了为具体类型实现 trait 的需要. 为泛型类型指定默认类型的语法是在 *声
+   明泛型时使用* ~<PlaceholderType=ConcreteType>~.
+
+   *运算符重载(Operator overloading)*: 是指在特定情况下自定义运算符行为的操作.
+
+   Rust 并不允许创建自定义运算符或重载任意运算符, 不过 ~std::ops~ 中所列出的运算
+   符和相应的 trait 可以通过实现运算符相关 trait 来重载.
+
+   ~Add~ trait 有一个叫做 ~Output~ 的关联类型, 它用来决定 add 方法的返回值类型
+   默认泛型定义:
+   #+begin_src rust
+     trait Add<RHS=Self> {
+         type Output;
+
+         fn add(self, rhs: RHS) -> Self::Output;
+     }
+   #+end_src
+
+   默认参数类型用于以下情况:
+   - 扩展类型而不破坏现有代码
+   - 在大部分用户都不需要的特定情况进行自定义
+
+** 完全限定语法与消歧义: 调用相同名称的方法
+   如果有两个 *类型* 都实现了同一 *trait*, Rust 可以根据 ~self~ 的类型计算出应该
+   使用哪一个 trait 实现.
+
+   然而, 关联函数是 trait 的一部分, 但如果没有 ~self~ 参数. 当统一作用域的两个类
+   型实现了同一 trait, Rust 就 *不能计算出* 我们期望的是哪一个类型, 除非使用 *完
+   全限定语法(fully qualified syntax)*.
+
+   完全限定语法的通常定义:
+   #+begin_src rust
+     <Type as Trait>::functionreceiver_if_method, next_arg, ...);
+   #+end_src
+   
+   对于关联函数, 其没有一个 ~receiver~, 故只会有其他参数的列表. 可以选择在任何函
+   数或方法调用处使用完全限定语法. 然而, 允许省略任何 Rust 能够从程序中的其他信
+   息中计算出的部分. 只有当存在多个同名实现而 Rust 需要帮助以便知道我们希望调用
+   哪个实现时, 才需要使用这个较为冗长的语法.
+
+** 父 trait 用于在另一个 trait 中使用某 trait 的功能
+   有时我们可能会需要某个 trait 使用另一个 trait 的功能. 在这种情况下, 需要能够
+   依赖相关的 trait 也被实现. 现在所需的 trait 是我们实现的 trait 的 *父(超)
+   trait(supertrait)*.
+
+** newtype 模式用以在外部类似上实现外部 trait
+   *孤儿规则(orphan rule)*: 说明只要 trait 或类型对于当前 crate 是本地的话就可以
+    在此类型上实现该 trait. 一个绕开这个限制的方法是使用 *newtype 模式* (newtype
+    pattern), 它涉及到在一个元组结构体中创建一个新类型. 这个元组结构体带有一个字
+    段作为希望实现 trait 的类型的简单封装. 接着这个封装类型对于 crate 是本地的.
+    这样就可以在这个封装上实现 trait. Newtype 是一个源自 Haskell 编程语言的概念.
+    使用这个模式 *没有任何运行时性能惩罚*, 这个封装类型在编译时就被忽略了.
