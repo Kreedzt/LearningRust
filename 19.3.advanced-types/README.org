@@ -1,0 +1,111 @@
+* 高级类型
+** 为了类型安全和抽象而使用 newtype 模式
+   newtype 模式可以用于一些其他我们还未讨论的功能, 包括静态的确保其值不被混淆,
+   和用来表示一个值的单元. 之前的示例中已有这样的例子: ~Millimeters~ 和 ~Meters~
+   结构体都在 newtype 中封装了 ~u32~ 值. 如果编写了一个由 ~Millimeters~ 类型参数
+   的函数, 不小心使用 ~Meters~ 或普通的 ~u32~ 值来调用该函数的程序是不能编译的.
+
+   另一个 newtype 模式的应用在于抽象掉一些类型的实现细节: eg: 封装类型可以暴露出
+   与直接使用其内部私有类型时所不同的公有 API, 以便限制其功能.
+
+   newtype 也可以隐藏其内部的泛型类型. eg: 可以提供一个封装了 ~HashMap<i32,
+   String>~ 的 ~People~ 类型, 用来储存人名以及相应的 ID. 使用 ~People~ 的代码只
+   需与提供的公有 API 交互即可, 比如向 ~People~ 集合增加名字字符串的方法, 这样这
+   些代码就无需知道在内部我们将一个 ~i32~ ID 赋予了这个名字了. newtype 模式是一
+   种实现第17章(封装隐藏了实现细节)部分所讨论的隐藏实现细节的封装的轻量级方法.
+
+** 类型别名用来创建类型同义词
+   连同 newtype 模式, Rust 还提供了声明 *类型别名(type alias)* 的能力, 使用
+   ~type~ 关键字来给予现有类型另一个名字
+   
+** 从不返回的 never type
+   Rust 有一个叫做 ~!~ 的特殊类型. 在类型理论术语中, 它被称为 empty type, 因为它
+   没有值. 我们更倾向于称之为 never type. 这个名字描述了它的作用: 在函数从不返回
+   的时候充当返回值.
+   
+   从不返回的函数被称为 *发散函数(diverging functions)*. 不能创建 ~!~ 类型的值.
+   所以 ~bar~ 也不可能返回值.
+
+   #+begin_src rust
+     let guess: u32 match guess.trim().parse() {
+         Ok(num) => num,
+         Err(_) => continue,
+     };
+   #+end_src
+
+   以下代码报错:
+   #+begin_src rust
+     let guess = match guess.trim().parse() {
+         Ok(_) => 5,
+         Err(_) => "hello",
+     }
+   #+end_src
+   这里 Rust 要求 ~guess~ 只能是一个类型, 现在必须整型也是字符串, 所以报错.
+
+   ~continue~ 返回的值是 ~!~. 当 Rust 要计算 ~guess~ 的类型时, 它查看这两个分支,
+   前者是 ~u32~, 后者是 ~!~. 因为 ~!~ 没有一个值, Rust 决定 ~guess~ 的类型是
+   ~u32~.
+
+   描述 ~!~ 的行为的正式方式是 never type 可以强转为任何其他类型. 允许 ~match~
+   的分支以 ~continue~ 结束是因为 ~continue~ 并不真正返回一个值; 相反它把控制权
+   交回上层循环
+
+   never type 的另一个用途是 ~panic!~.
+   #+begin_src rust
+     impl<T> Option<T> {
+         pub fn unwrap(self) -> T {
+             match self {
+                 Some(val) => val,
+                 None => panic!("called `Option::unwrap()` on a `None` value"),
+             }
+         }
+     }
+   #+end_src
+
+   Rust 知道 ~val~ 是 ~T~ 类型, ~panic!~ 是 ~!~ 类型, 所以整个 ~match~ 表达式的
+   结果是 ~T~ 类型. 这能工作是因为 ~panic!~ 并不产生一个值; 它会终止程序. 对于
+   ~None~ 的情况, ~unwrap~ 并不返回一个值, 所以代码是有效的.
+
+   ~loop~ 也是有着 ~!~ 类型的表达式
+   #+begin_src rust
+     print!("forever ");
+
+     loop {
+         print!("and ever");
+     }
+   #+end_src
+
+   这里, 循环永远也不结束, 所以此表达式的值是 ~!~. 但是如果引入 ~break~ 这就不为
+   真了, 因为循环在执行到 ~break~ 后就会终止.
+
+** 动态大小类型和 Sized trait
+   因为 Rust 需要知道例如应该为特定类型的值分配多少空间这样的信息类型系统的一个
+   特定的角落可能令人迷惑: 这就是 *动态大小类型(dynamically sized types)* 的概念.
+   这有时被称为 "DST" 或 "unseized types", 这些类型允许我们处理只有在运行时才知
+   道大小的类型.
+
+   ~str~ 是一个 DST(不是 ~&str~); 直到运行时我们都不知道字符串有多长. 因为知道运
+   行时都不能知道大小, 也就意味着不能创建 ~str~ 类型的变量, 也不能获取 ~str~ 类
+   型的参数.
+
+   字面量字符串的类型是 ~&str~ 而不是 ~str~, slice 数据结构储存了开始位置和
+   slice 的长度.
+
+   虽然 ~&T~ 是一个储存了 ~T~ 所在内存位置的单个值, ~&str~ 则是 *两个值*: ~str~
+   的地址和长度. 这样, ~&str~ 就有了一个在编译时可以知道的大小: 它是 ~usize~ 长
+   度的两倍. 我们总是知道 ~&str~ 的大小, 而无论其引用的字符串是多长. 这里是 Rust
+   中动态大小类型的常规用法: 他们有一些额外的元信息来储存动态信息的大小. 这引出
+   了动态大小类型的黄金规则: 必须将动态大小类型的值置于某种指针之后.
+
+   可以将 ~str~ 与所有类型的指针结合: eg: ~Box<str>~ 或 ~Rc<str>~. 事实上, 我们
+   见过另一个动态大小类型 trait. 每一个 trait 都是一个可以通过 trait 名称来引用
+   的动态大小类型. 我们为了将 trait 用于 trait 对象, 必须将他们放入指针之后, eg:
+   ~&dyn Trait~ 或 ~Box<dyn Trait>~ (~Rc<dyn Trait>~ 也可以)
+
+   为了处理 DST, RUst 有一个特定的 trait 来决定一个类型的大小是否在编译时可知:
+   ~Sized~ trait. 这个 trait 自动为编译器在编译时就知道大小的类型实现. Rust 隐式
+   的为每一个泛型函数增加了 ~Sized~ bound.
+
+   ~?Sized~ trait bound 与 ~Sized~ 相对; 可以读作 "~T~ 可能是也可能不是 ~Sized~
+   的". 这个语法 *只能用于* ~Sized~, 而不腻用于其他 trait.
+
