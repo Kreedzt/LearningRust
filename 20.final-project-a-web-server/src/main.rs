@@ -1,6 +1,9 @@
 use std::io::prelude::*;
 use std::fs;
+use std::thread;
 use std::net::{TcpListener, TcpStream};
+use std::time::Duration;
+use final_project_a_web_server::ThreadPool;
 
 fn main() {
     // 监听 TCP 链接
@@ -8,14 +11,35 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
     // 此处遍历的是 *链接尝试* 而不是链接, 所以可能失败
+    // for stream in listener.incoming() {
+    //     let stream = stream.unwrap();
+
+    //     // println!("Connection established!");
+    //     // 读取请求
+    //     handle_connection(stream);
+    // }
+
+    // 为每一个流新建一个线程
+    // for stream in listener.incoming() {
+    //     let stream = stream.unwrap();
+
+    //     // 创建新线程并在其中运行闭包的代码.
+    //     // 不会阻塞但是会无限制创建线程导致系统崩溃
+    //     thread::spawn(|| {
+    //         handle_connection(stream);
+    //     });
+    // }
+
+    // 为有限数量的线程创建一个类似的接口
+    let pool = ThreadPool::new(4);
+
     for stream in listener.incoming() {
         let stream = stream.unwrap();
 
-        // println!("Connection established!");
-        // 读取请求
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
-
 }
 
 // steam 参数是可变的, 因为 TcpStream 实例在内部记录了所返回的数据
@@ -75,8 +99,14 @@ fn handle_connection(mut stream: TcpStream) {
     //     stream.flush().unwrap();
     // }
 
+    // 模拟慢请求
+    let sleep = b"GET /sleep HTTP/1.1\r\n";
+
     // 少量代码重构
     let (status_line, filename) = if buffer.starts_with(get) {
+        ("HTTP/1.1 200 OK\r\n\r\n", "hello.html")
+    } else if buffer.starts_with(sleep) {
+        thread::sleep(Duration::from_secs(5));
         ("HTTP/1.1 200 OK\r\n\r\n", "hello.html")
     } else {
         ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "404.html")
