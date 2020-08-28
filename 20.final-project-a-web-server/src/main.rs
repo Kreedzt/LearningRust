@@ -33,13 +33,24 @@ fn main() {
     // 为有限数量的线程创建一个类似的接口
     let pool = ThreadPool::new(4);
 
-    for stream in listener.incoming() {
+    // for stream in listener.incoming() {
+    //     let stream = stream.unwrap();
+
+    //     pool.execute(|| {
+    //         handle_connection(stream);
+    //     });
+    // }
+
+    // 停机测试
+    for stream in listener.incoming().take(2) {
         let stream = stream.unwrap();
 
         pool.execute(|| {
             handle_connection(stream);
         });
     }
+
+    println!("Shutting down.");
 }
 
 // steam 参数是可变的, 因为 TcpStream 实例在内部记录了所返回的数据

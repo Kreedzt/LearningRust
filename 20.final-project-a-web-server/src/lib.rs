@@ -5,7 +5,15 @@ pub struct ThreadPool {
     // threads: Vec<thread::JoinHandle<()>>,
     workers: Vec<Worker>,
     // 充当发送端的开始
-    sender: mpsc::Sender<Job>,
+    // sender: mpsc::Sender<Job>,
+    // 优雅停机与清理
+    sender: mpsc::Sender<Message>,
+}
+
+// 优雅停机清理: 枚举
+enum Message {
+    NewJob(Job),
+    Terminate
 }
 
 // struct Job;
@@ -61,13 +69,49 @@ impl ThreadPool {
     {
         let job = Box::new(f);
         // 在通道中发出任务
-        self.sender.send(job).unwrap();
+        // self.sender.send(job).unwrap();
+
+        // 优雅停机与清理: 发送枚举成员
+        self.sender.send(Message::NewJob(job)).unwrap();
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        // 发送停机枚举
+        println!("Sending terminate message to all workers.");
+
+        for _ in &mut self.workers {
+            self.sender.send(Message::Terminate).unwrap();
+        }
+
+        println!("Shutting down all workers.");
+        
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            // 尝试当线程池离开作用域时 join 每个线程
+            // 并不能调用 `join`, 因为只有每一个 `worker` 的可变引用, 而 `join` 获取其参数的所有权
+            // 需要一个方法将 `thread` 移出拥有其所有权的 `Worker` 实例以便 `join` 可以消费这个线程
+            // 如果 `Worker` 上存放的是 `Option<thread::JoinHandle<()>`
+            // 就可以在 `Option` 上调用 `take` 方法将值从 `Some` 成员中移动出来而对 `None` 成员不作处理
+            // 正在运行的 `Worker` 上的 `thread` 将是 `Some` 成员值
+            // 当需要清理时, 将 `Some` 替换为 `None` 就没有可以允许的线程了
+            // worker.thread.join().unwrap();
+            //    |             ^^^^^^^^^^^^^ cannot move out of borrowed content
+
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
     }
 }
 
 struct Worker {
     id: usize,
-    thread: thread::JoinHandle<()>
+    // thread: thread::JoinHandle<()>,
+    // 优雅停机清理
+    thread: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
@@ -87,28 +131,59 @@ impl Worker {
     //     }
     // }
 
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+    // fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+    //     let thread = thread::spawn(move || {
+    //         // 循环请求任务
+    //         loop {
+    //             // 首先调用 `lock` 获取互斥器
+    //             // 如果互斥器处于一种叫做 *被污染(poisoned)* 的状态时获取锁可能会失效
+    //             // 可能发生于其他线程在持有锁时 panic 了且没有释放锁
+
+    //             // 接着调用 `recv` 从通道接收 `Job`
+    //             // 调用 `recv` 会阻塞当前线程
+    //             // Mutex<T> 确保一次只有一个 `Worker` 线程尝试请求任务
+    //             let job = receiver.lock().unwrap().recv().unwrap();
+
+    //             println!("Worker {} got a job; executing.", id);
+
+    //             job();
+    //         }
+    //     });
+
+    //     Worker {
+    //         id,
+    //         thread,
+    //     }
+    // }
+
+    // 优雅停机与清理
+    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
         let thread = thread::spawn(move || {
             // 循环请求任务
             loop {
-                // 首先调用 `lock` 获取互斥器
-                // 如果互斥器处于一种叫做 *被污染(poisoned)* 的状态时获取锁可能会失效
-                // 可能发生于其他线程在持有锁时 panic 了且没有释放锁
+                // 优雅停机清理: 匹配枚举值
+                let message = receiver.lock().unwrap().recv().unwrap();
 
-                // 接着调用 `recv` 从通道接收 `Job`
-                // 调用 `recv` 会阻塞当前线程
-                // Mutex<T> 确保一次只有一个 `Worker` 线程尝试请求任务
-                let job = receiver.lock().unwrap().recv().unwrap();
+                match message {
+                    Message::NewJob(job) => {
+                        println!("Worker {} got a job; executing.", id);
+                        
+                        job();
+                    },
+                    Message::Terminate => {
+                        println!("Worker {} was told to terminate.", id);
 
-                println!("Worker {} got a job; executing.", id);
-
-                job();
+                        break;
+                    },
+                }
             }
         });
 
         Worker {
             id,
-            thread
+            // thread,
+            // 优雅的停机与清理
+            thread: Some(thread)
         }
     }
 
