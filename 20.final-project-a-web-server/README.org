@@ -1,0 +1,62 @@
+* 准备: 构建多线程 web server
+  构建计划:
+  1. 学习一些 TCP 与 HTTP 知识
+  2. 在嵌套字 (socket) 上监听 TCP 请求
+  3. 解析少量的 HTTP 请求
+  4. 创建一个合适的 HTTP 相应
+  5. 通过线程池改善 server 的吞吐量
+
+* 构建单线程 web server
+  web server 中涉及到的两个主要协议是 *超文本传输协议* 和 *传输控制协议*. 这两者
+  都是 *请求-相应* 协议, 也就是说, 有 *客户端(clien)* 来初始化请求, 并有 *服务
+  端* 监听请求并向客户端提供相应. 请求与相应的内容本身定义.
+
+  TCP 是一个底层协议, 它描述了信息如果从一个 server 到另一个 server 的细节, 不过
+  其并不指定信息是什么. HTTP 构建于 TCP 之上, 它定义了请求和相应的内容. 为此, 技
+  术上讲可将 HTTP 用于其他协议之上, 不过对于绝大部分情况, HTTP 通过 TCP 传输. 我
+  们将要做的就是处理 TCP 和 HTTP 请求与相应的原始字节数据.
+
+** 仔细观察 HTTP 请求
+   HTTP 是一个基于文本的协议, 同时一个请求有如下格式
+   #+begin_src text
+     Method Request-URI HTTP-Version CRLF
+     headers CRLF
+     message-body
+   #+end_src
+
+   第一行叫做 *请求行(request line)*, 它存放了客户端请求了什么的信息. 请求行的第
+   一部分是所使用的 method, 比如 ~GET~ 或 ~POST~, 这描述了客户端如何进行请求. 这
+   里客户端使用了 ~GET~ 请求.
+
+   请求行接下来的部分是 /, 它代表客户端请求的 *统一资源标识符*: 大体上类似, 但是
+   也不完全类似于 URL(统一资源定位符). URI 和 URL 之间的区别对于本章的目的来说并
+   不重要, 不过 HTTP 规范使用属于 URI, 这里可以简单地将 URL 理解为 URI.
+
+   最后一部分是客户端使用的 HTTP 版本, 然后请求行以 *CRLF序列* (代表回车和换行
+   carriage return line feed, 这是打字机时代的术语)结束. CRLF 序列也可以写成
+   ~\r\n~. CRLF 序列将请求行与其余请求数据分开. 打印 CRLF 时, 我们会看到一个新行,
+   而不是 ~\r\n~.
+
+   目前运行程序中, ~GET~ 是 method, / 是请求 URI, 而 ~HTTP/1.1~ 是版本.
+
+   从 ~Host:~ 开始的其余的行是 headers; ~GET~ 请求没有 body.
+
+** 编写响应
+   我们将实现在客户端请求的相应中发送数据的功能. 相应有如下格式:
+   #+begin_src text
+     HTTP-VERSION Status-Code Reason-Phrase CRLF
+     headers CRLF
+     message-body
+   #+end_src
+
+   第一行叫做 *状态行(status line)*, 它包含相应的 HTTP 版本, 一个数字状态码用以
+   总结请求的结果和一个描述之前状态码的文本原因短语. CRLF 序列之后是任意 header,
+   另一个 CRLF序列, 和响应的 body.
+
+   一个使用 HTTP1.1 版本的响应例子, 状态码为 200, 原因短语为 OK, 没有 header, 也
+   没有 body:
+   #+begin_src text
+     HTTP/1.1 200 OK\r\n\r\n
+   #+end_src
+
+   状态码 200 是一个标准的成功响应. 这些文本是一个微型的成功 HTTP 响应.
